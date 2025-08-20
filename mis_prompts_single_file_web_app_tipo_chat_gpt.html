@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mis Prompts</title>
+  <!-- Favicon minimal </> -->
+  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="black"/><text x="50" y="60" font-size="56" text-anchor="middle" fill="white">&lt;/&gt;</text></svg>' />
+  <style>
+    /* ======== Tema y layout (estilo tipo ChatGPT) ======== */
+    :root{
+      --bg:#0f1115;          /* fondo principal */
+      --bg-soft:#0b0d11;     /* fondo sidebar/topbar */
+      --card:#151922;        /* fondo cards */
+      --card-hover:#1a1f2a;  
+      --border:#262b36;
+      --text:#e7e9ee;
+      --muted:#a0a7b3;
+      --accent:#10b981;      /* verde menta */
+      --danger:#ef4444;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --radius:14px;
+    }
+    [data-theme="light"]{
+      --bg:#f6f7f9;
+      --bg-soft:#ffffff;
+      --card:#ffffff;
+      --card-hover:#f4f6f9;
+      --border:#e6e8ee;
+      --text:#0c1222;
+      --muted:#5a6475;
+      --accent:#0ea5e9;
+      --shadow:0 8px 22px rgba(0,0,0,.08);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:var(--bg); color:var(--text);
+      font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,'Noto Sans',sans-serif;
+    }
+    a{color:inherit}
+    button{font:inherit; color:inherit; background:none; border:1px solid var(--border); border-radius:12px; padding:.55rem .75rem; cursor:pointer}
+    button:hover{border-color:#3b82f6}
+    .icon-btn{display:inline-flex; align-items:center; gap:.5rem}
+
+    /* Topbar */
+    .topbar{
+      position:fixed; inset:0 0 auto 0; height:64px; z-index:60;
+      background:var(--bg-soft); border-bottom:1px solid var(--border);
+      display:flex; align-items:center; gap:12px; padding:0 14px;
+    }
+    .brand{display:flex; align-items:center; gap:.6rem; font-weight:700}
+    .brand .logo{width:28px; height:28px; display:grid; place-items:center; border:1px solid var(--border); border-radius:8px}
+    .spacer{flex:1}
+    .search{
+      flex:1; max-width:720px; display:flex; align-items:center; gap:.5rem;
+      background:var(--bg); border:1px solid var(--border); border-radius:999px; padding:.35rem .75rem;
+    }
+    .search input{
+      all:unset; flex:1; padding:.35rem; color:var(--text);
+    }
+    .pill{border-radius:999px}
+
+    /* Layout principal */
+    .wrap{display:flex; gap:0}
+    .sidebar{
+      position:fixed; top:64px; bottom:0; left:0; width:260px; z-index:40;
+      background:var(--bg-soft); border-right:1px solid var(--border);
+      overflow:auto; transition:transform .25s ease;
+    }
+    .sidebar .section{padding:14px}
+    .sidebar h3{margin:6px 0 10px; font-size:.9rem; color:var(--muted); letter-spacing:.02em}
+    .projects{display:flex; flex-direction:column; gap:.25rem; padding-bottom:20px}
+    .project{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:.5rem .6rem; border-radius:10px; cursor:pointer;
+      border:1px solid transparent;
+    }
+    .project:hover{background:var(--card-hover)}
+    .project.active{background:var(--card); border-color:var(--border)}
+    .count{opacity:.7; font-size:.85em}
+
+    .content{margin-left:260px; padding:88px 18px 28px; min-height:100vh}
+
+    /* Grid de cards */
+    .grid{display:grid; gap:16px; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr))}
+    .card{
+      background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+      padding:14px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:.6rem;
+      transition:transform .08s ease, background .2s ease;
+    }
+    .card:hover{transform:translateY(-2px); background:var(--card-hover)}
+    .title{font-weight:700; font-size:1.02rem; line-height:1.25; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:1; overflow:hidden}
+    .snippet{color:var(--muted); font-size:.95rem; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; overflow:hidden}
+    .tags{display:flex; flex-wrap:wrap; gap:6px}
+    .tag{--c:#9aa0a6; background:color-mix(in oklab, var(--c) 16%, transparent); border:1px solid color-mix(in oklab, var(--c) 52%, var(--border));
+      color:var(--text); padding:.2rem .5rem; border-radius:999px; font-size:.78rem; letter-spacing:.01em}
+    .row{display:flex; align-items:center; gap:8px}
+    .row.end{justify-content:flex-end}
+    .muted{color:var(--muted)}
+    .tooltip{position:relative}
+    .tooltip[data-tip]:after{content:attr(data-tip); position:absolute; bottom:calc(100% + 8px); right:0; background:var(--bg-soft); border:1px solid var(--border); padding:.25rem .45rem; border-radius:8px; font-size:.78rem; opacity:0; pointer-events:none; transform:translateY(4px); transition:.15s}
+    .tooltip:hover[data-tip]:after{opacity:1; transform:translateY(0)}
+
+    /* Modal */
+    .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:80}
+    .modal-backdrop.open{display:flex}
+    .modal{width:min(920px, 92vw); max-height:86vh; overflow:auto; background:var(--bg-soft); border:1px solid var(--border); border-radius:16px; padding:16px 16px 18px; box-shadow:var(--shadow)}
+    .modal h2{margin:.25rem 0 .5rem}
+    .meta{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:.25rem 0 .75rem}
+    pre{white-space:pre-wrap; background:var(--bg); border:1px solid var(--border); padding:12px; border-radius:12px; overflow:auto}
+
+    /* Empty state */
+    .empty{border:1px dashed var(--border); border-radius:16px; padding:26px; text-align:center; color:var(--muted)}
+
+    /* Mobile */
+    .hamburger{display:none}
+    @media (max-width: 960px){
+      .hamburger{display:inline-flex}
+      .sidebar{transform:translateX(-100%)}
+      .sidebar.open{transform:translateX(0)}
+      .content{margin-left:0}
+    }
+  </style>
+</head>
+<body>
+  <!-- ======== Topbar ======== -->
+  <header class="topbar" role="banner">
+    <button class="icon-btn hamburger" id="btnSidebar" aria-label="Abrir menú de proyectos">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="brand" aria-label="Mis Prompts">
+      <div class="logo">&lt;/&gt;</div>
+      <span>Mis Prompts</span>
+    </div>
+    <div class="spacer"></div>
+    <div class="search" role="search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input id="q" type="search" placeholder="Buscar por título, contenido, etiquetas o proyecto…" aria-label="Buscar" />
+    </div>
+    <div class="spacer"></div>
+    <button id="btnImport" class="icon-btn pill" aria-label="Importar JSON"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Importar</button>
+    <button id="btnExport" class="icon-btn pill" aria-label="Exportar JSON"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21V9m0 0l4 4m-4-4L8 13M20 3H4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Exportar</button>
+    <button id="btnTheme" class="icon-btn pill" aria-label="Cambiar tema"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Tema</button>
+  </header>
+
+  <!-- ======== Sidebar (Proyectos) ======== -->
+  <aside id="sidebar" class="sidebar" aria-label="Proyectos">
+    <div class="section">
+      <h3>Proyectos</h3>
+      <nav id="projects" class="projects" aria-label="Lista de proyectos"></nav>
+    </div>
+  </aside>
+
+  <!-- ======== Contenido ======== -->
+  <main class="content" id="main" role="main">
+    <div id="controls" style="display:flex; align-items:center; gap:10px; margin:0 0 14px 0">
+      <label class="muted" for="sort">Ordenar:</label>
+      <select id="sort" aria-label="Ordenar resultados" style="background:var(--bg-soft); border:1px solid var(--border); color:var(--text); padding:.45rem .55rem; border-radius:10px">
+        <option value="az">Título A–Z</option>
+        <option value="za">Título Z–A</option>
+        <option value="recent">Más recientes (updatedAt)</option>
+      </select>
+    </div>
+    <div id="grid" class="grid" aria-live="polite" aria-busy="false"></div>
+    <div id="empty" class="empty" style="display:none">No hay prompts que coincidan con tu búsqueda.</div>
+  </main>
+
+  <!-- ======== Modal ======== -->
+  <div id="backdrop" class="modal-backdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="row" style="justify-content:space-between; gap:8px">
+        <h2 id="modalTitle" style="margin:0; font-size:1.15rem"></h2>
+        <div class="row">
+          <button id="btnShare" class="icon-btn pill" aria-label="Compartir enlace del prompt"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M14 9l7-7m0 0h-5m5 0v5M21 14v4a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Compartir</button>
+          <button id="btnCopyFull" class="icon-btn pill" aria-label="Copiar contenido completo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M8 8h10v12H8zM6 16H4V4h12v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Copiar</button>
+          <button id="btnClose" class="icon-btn pill" aria-label="Cerrar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Cerrar
+          </button>
+        </div>
+      </div>
+      <div class="meta">
+        <span id="modalProject" class="muted"></span>
+        <div id="modalTags" class="tags"></div>
+      </div>
+      <pre id="modalContent" tabindex="0"></pre>
+    </div>
+  </div>
+
+  <!-- File input oculto para importar -->
+  <input type="file" id="fileInput" accept="application/json" hidden />
+
+  <script>
+  ;(() => {
+    // ======== Datos de ejemplo ========
+    const seed = [
+      { id:"p-001", titulo:"Resumen ejecutivo NIS2", contenido:"Quiero un resumen ejecutivo de la directiva NIS2 con foco en TPRM, métricas clave y plan de 90 días...", proyecto:"Compliance", etiquetas:["ChatGPT","investigación"], updatedAt:"2025-08-10T10:00:00Z" },
+      { id:"p-002", titulo:"Prompt imagen banner evento", contenido:"Genera un banner 1600x900 estilo oscuro, tipografía tecnológica, destacar: UCIBER, Santander, junio...", proyecto:"Eventos", etiquetas:["imagen"], updatedAt:"2025-08-12T09:00:00Z" },
+      { id:"p-003", titulo:"Guión vídeo corto phishing", contenido:"Escribe un guion de 45 segundos para un vídeo sobre phishing con llamada a la acción final...", proyecto:"Awareness", etiquetas:["video","ChatGPT"], updatedAt:"2025-08-11T18:00:00Z" },
+      { id:"p-004", titulo:"Prompt para análisis de logs", contenido:"Analiza estos logs de firewall y dame indicadores, anomalías y recomendaciones priorizadas...", proyecto:"DFIR", etiquetas:["ChatGPT","código"], updatedAt:"2025-08-13T08:00:00Z" },
+      { id:"p-005", titulo:"Guion voz IA para awareness", contenido:"Redacta un guion de 30 segundos para locución con voz IA sobre contraseñas robustas y MFA...", proyecto:"Awareness", etiquetas:["audio","video"], updatedAt:"2025-08-09T12:00:00Z" }
+    ]
+
+    // ======== Persistencia ========
+    const LS_KEYS = {
+      DATA: 'prompts:data',
+      SEARCH: 'prompts:search',
+      PROJECT: 'prompts:project',
+      THEME: 'prompts:theme',
+      SORT: 'prompts:sort'
+    }
+
+    let data = []
+    try {
+      const raw = localStorage.getItem(LS_KEYS.DATA)
+      data = raw ? JSON.parse(raw) : seed
+    } catch { data = seed }
+
+    // ======== Estado de UI ========
+    let selectedProject = localStorage.getItem(LS_KEYS.PROJECT) || 'Todos'
+    let searchText = localStorage.getItem(LS_KEYS.SEARCH) || ''
+    let sortMode = localStorage.getItem(LS_KEYS.SORT) || 'az'
+
+    // Tema
+    const savedTheme = localStorage.getItem(LS_KEYS.THEME)
+    if(savedTheme){ document.documentElement.setAttribute('data-theme', savedTheme) }
+
+    // ======== Colores por etiqueta ========
+    const TAG_COLORS = {
+      'chatgpt': '#22c55e',  // verde
+      'gemini': '#3b82f6',   // azul
+      'imagen': '#ec4899',   // rosa
+      'video': '#8b5cf6',    // morado
+      'audio': '#06b6d4',    // cian
+      'código': '#f59e0b',   // ámbar
+      'codigo': '#f59e0b',   // alias sin acento
+      'investigación': '#9ca3af', // gris
+      'investigacion': '#9ca3af'
+    }
+    const colorForTag = (t) => TAG_COLORS[t?.toLowerCase?.()] || '#9aa0a6'
+
+    // ======== Utilidades ========
+    const $ = (sel, el=document) => el.querySelector(sel)
+    const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel))
+
+    const debounce = (fn, ms=250) => {
+      let to
+      return (...args) => { clearTimeout(to); to=setTimeout(()=>fn(...args), ms) }
+    }
+    const clampWords = (str, n=28) => {
+      if(!str) return ''
+      const words = String(str).trim().split(/\s+/)
+      return words.length>n ? words.slice(0,n).join(' ') + '…' : str
+    }
+    const normalize = (s) => (s||'').toString().toLowerCase()
+
+    function copyToClipboard(text){
+      if(navigator.clipboard) return navigator.clipboard.writeText(text)
+      const ta = document.createElement('textarea')
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try{ document.execCommand('copy') } finally { document.body.removeChild(ta) }
+      return Promise.resolve()
+    }
+
+    // Deep-link hash -> abre modal de ese id
+    function openHashIfNeeded(){
+      const id = location.hash?.replace('#','')
+      if(!id) return
+      const item = data.find(d=>d.id===id)
+      if(item) openModal(item)
+    }
+
+    // ======== Render: Proyectos ========
+    const projectsNav = $('#projects')
+    function computeProjectCounts(){
+      const counts = data.reduce((acc, it)=>{ acc[it.proyecto] = (acc[it.proyecto]||0)+1; return acc }, {})
+      return counts
+    }
+    function renderProjects(){
+      const counts = computeProjectCounts()
+      projectsNav.innerHTML = ''
+      // Opción "Todos"
+      projectsNav.appendChild(projectItem('Todos', data.length, selectedProject==='Todos'))
+      Object.keys(counts).sort((a,b)=>a.localeCompare(b)).forEach(prj=>{
+        projectsNav.appendChild(projectItem(prj, counts[prj], selectedProject===prj))
+      })
+    }
+    function projectItem(name, count, active){
+      const li = document.createElement('div')
+      li.className = 'project' + (active?' active':'')
+      li.role = 'button'
+      li.tabIndex = 0
+      li.setAttribute('aria-pressed', active? 'true':'false')
+      li.innerHTML = `<span>${escapeHtml(name)}</span><span class="count">${count}</span>`
+      li.addEventListener('click', ()=> selectProject(name))
+      li.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); selectProject(name) }})
+      return li
+    }
+    function selectProject(name){
+      selectedProject = name
+      localStorage.setItem(LS_KEYS.PROJECT, selectedProject)
+      renderProjects(); renderGrid();
+    }
+
+    // ======== Render: Grid ========
+    const grid = $('#grid')
+    const empty = $('#empty')
+    function filtered(){
+      const q = normalize(searchText)
+      return data.filter(it=>{
+        const inProject = (selectedProject==='Todos') || it.proyecto===selectedProject
+        if(!inProject) return false
+        if(!q) return true
+        const haystack = [it.titulo, it.contenido, it.proyecto, ...(it.etiquetas||[])].map(normalize).join(' ')
+        return haystack.includes(q)
+      })
+    }
+    function sortList(arr){
+      if(sortMode==='az') return arr.sort((a,b)=> a.titulo.localeCompare(b.titulo))
+      if(sortMode==='za') return arr.sort((a,b)=> b.titulo.localeCompare(a.titulo))
+      if(sortMode==='recent') return arr.sort((a,b)=> new Date(b.updatedAt||0)-new Date(a.updatedAt||0))
+      return arr
+    }
+
+    function renderGrid(){
+      const list = sortList(filtered())
+      grid.innerHTML = ''
+      empty.style.display = list.length? 'none':'block'
+      list.forEach(item=> grid.appendChild(card(item)))
+    }
+
+    function card(item){
+      const el = document.createElement('article')
+      el.className = 'card'
+      el.setAttribute('tabindex','0')
+      el.setAttribute('aria-label', `Abrir prompt ${item.titulo}`)
+
+      const h = document.createElement('div')
+      h.className = 'title'
+      h.textContent = item.titulo
+
+      const s = document.createElement('div')
+      s.className = 'snippet'
+      s.textContent = clampWords(item.contenido, 28)
+
+      const tags = document.createElement('div')
+      tags.className = 'tags'
+      ;(item.etiquetas||[]).forEach(t=> tags.appendChild(tagChip(t)))
+
+      const row = document.createElement('div')
+      row.className = 'row'
+
+      const btnMore = document.createElement('button')
+      btnMore.className = 'pill'
+      btnMore.textContent = 'Ver más'
+      btnMore.addEventListener('click', (ev)=>{ ev.stopPropagation(); openModal(item) })
+
+      const btnCopy = document.createElement('button')
+      btnCopy.className = 'pill tooltip'
+      btnCopy.setAttribute('data-tip','Copiar prompt')
+      btnCopy.setAttribute('aria-label','Copiar prompt')
+      btnCopy.innerHTML = iconCopy()
+      btnCopy.addEventListener('click', async (ev)=>{
+        ev.stopPropagation()
+        try {
+          await copyToClipboard(item.contenido)
+          flash(btnCopy, 'Copiado ✓')
+        } catch { flash(btnCopy, 'Error', true) }
+      })
+
+      row.appendChild(btnCopy)
+      row.appendChild(btnMore)
+
+      el.appendChild(h)
+      el.appendChild(s)
+      el.appendChild(tags)
+      el.appendChild(row)
+
+      // Permitir abrir con Enter
+      el.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ openModal(item) }})
+      el.addEventListener('click', ()=> openModal(item))
+      return el
+    }
+
+    function tagChip(text){
+      const span = document.createElement('span')
+      span.className = 'tag'
+      const c = colorForTag(text)
+      span.style.setProperty('--c', c)
+      span.textContent = text
+      return span
+    }
+
+    function flash(btn, text, isErr=false){
+      const old = btn.innerHTML
+      btn.textContent = text
+      if(isErr) btn.style.borderColor = 'var(--danger)'
+      setTimeout(()=>{ btn.innerHTML = old; btn.style.borderColor='' }, 900)
+    }
+
+    function escapeHtml(str){
+      return String(str).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')
+    }
+
+    // ======== Modal ========
+    const backdrop = $('#backdrop')
+    const modalTitle = $('#modalTitle')
+    const modalContent = $('#modalContent')
+    const modalTags = $('#modalTags')
+    const modalProject = $('#modalProject')
+    const btnClose = $('#btnClose')
+    const btnCopyFull = $('#btnCopyFull')
+    const btnShare = $('#btnShare')
+
+    let lastFocus = null
+    let currentItem = null
+
+    function openModal(item){
+      currentItem = item
+      lastFocus = document.activeElement
+      modalTitle.textContent = item.titulo
+      modalProject.textContent = 'Proyecto: ' + (item.proyecto || '—')
+      modalTags.innerHTML = ''
+      ;(item.etiquetas||[]).forEach(t=> modalTags.appendChild(tagChip(t)))
+      modalContent.textContent = item.contenido || ''
+      backdrop.classList.add('open')
+      backdrop.setAttribute('aria-hidden','false')
+      document.body.style.overflow = 'hidden'
+      btnClose.focus()
+      // hash profundo
+      history.replaceState(null, '', '#' + item.id)
+    }
+    function closeModal(){
+      backdrop.classList.remove('open')
+      backdrop.setAttribute('aria-hidden','true')
+      document.body.style.overflow = ''
+      if(lastFocus) lastFocus.focus()
+      // limpiar hash
+      if(location.hash) history.replaceState(null, '', ' ')
+    }
+
+    backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) closeModal() })
+    btnClose.addEventListener('click', closeModal)
+    document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && backdrop.classList.contains('open')) closeModal() })
+
+    btnCopyFull.addEventListener('click', async ()=>{
+      if(!currentItem) return
+      try{ await copyToClipboard(currentItem.contenido || '') ; flash(btnCopyFull,'Copiado ✓') } catch{ flash(btnCopyFull,'Error',true) }
+    })
+
+    btnShare.addEventListener('click', async ()=>{
+      if(!currentItem) return
+      const url = location.origin + location.pathname + '#' + currentItem.id
+      try{
+        await copyToClipboard(url)
+        flash(btnShare,'Enlace copiado ✓')
+      }catch{ flash(btnShare,'Error',true) }
+    })
+
+    // ======== Búsqueda / Orden ========
+    const q = $('#q')
+    q.value = searchText
+    q.addEventListener('input', debounce(()=>{
+      searchText = q.value.trim()
+      localStorage.setItem(LS_KEYS.SEARCH, searchText)
+      renderGrid()
+    }, 250))
+
+    const sort = $('#sort')
+    sort.value = sortMode
+    sort.addEventListener('change', ()=>{
+      sortMode = sort.value
+      localStorage.setItem(LS_KEYS.SORT, sortMode)
+      renderGrid()
+    })
+
+    // ======== Import / Export ========
+    const btnImport = $('#btnImport')
+    const btnExport = $('#btnExport')
+    const fileInput = $('#fileInput')
+
+    btnImport.addEventListener('click', ()=> fileInput.click())
+    fileInput.addEventListener('change', async (e)=>{
+      const file = e.target.files?.[0]
+      if(!file) return
+      try{
+        const text = await file.text()
+        const json = JSON.parse(text)
+        if(!Array.isArray(json)) throw new Error('El JSON debe ser un array')
+        data = json
+        localStorage.setItem(LS_KEYS.DATA, JSON.stringify(data))
+        renderProjects(); renderGrid()
+      }catch(err){ alert('Error al importar JSON: ' + err.message) }
+      finally{ fileInput.value = '' }
+    })
+
+    btnExport.addEventListener('click', ()=>{
+      const filename = 'prompts.json'
+      const json = JSON.stringify(data, null, 2)
+      try {
+        const a = document.createElement('a')
+        const supportsDownload = 'download' in HTMLAnchorElement.prototype
+        const isIOS = /iP(hone|ad|od)/i.test(navigator.userAgent)
+
+        if (supportsDownload && !isIOS) {
+          const blob = new Blob([json], { type: 'application/json' })
+          const url = URL.createObjectURL(blob)
+          a.href = url
+          a.download = filename
+          a.style.display = 'none'
+          document.body.appendChild(a)
+          a.click()
+          setTimeout(()=>{ URL.revokeObjectURL(url); a.remove() }, 100)
+        } else {
+          // Fallback para iOS/Safari: abrir en nueva pestaña como data URL
+          const dataUrl = 'data:application/json;charset=utf-8,' + encodeURIComponent(json)
+          a.href = dataUrl
+          a.target = '_blank'
+          a.rel = 'noopener'
+          document.body.appendChild(a)
+          a.click()
+          a.remove()
+        }
+        try { flash(btnExport, 'Exportado ✓') } catch {}
+      } catch (err) {
+        console.error('Export error', err)
+        alert('No se pudo exportar. Como alternativa, copia el JSON mostrado a continuación.')
+        try { navigator.clipboard?.writeText(json) } catch {}
+      }
+    })
+
+    // ======== Tema (oscuro/claro) ========
+    const btnTheme = $('#btnTheme')
+    btnTheme.addEventListener('click', ()=>{
+      const cur = document.documentElement.getAttribute('data-theme') || 'dark'
+      const next = cur==='dark'? 'light':'dark'
+      document.documentElement.setAttribute('data-theme', next)
+      localStorage.setItem(LS_KEYS.THEME, next)
+    })
+
+    // ======== Sidebar móvil ========
+    const sb = $('#sidebar')
+    const btnSidebar = $('#btnSidebar')
+    btnSidebar.addEventListener('click', ()=>{
+      sb.classList.toggle('open')
+    })
+
+    // ======== Iconos ========
+    function iconCopy(){
+      return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 8h10v12H8zM6 16H4V4h12v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+    }
+
+    // ======== Init ========
+    renderProjects(); renderGrid(); openHashIfNeeded()
+
+  })();
+  </script>
+</body>
+</html>
